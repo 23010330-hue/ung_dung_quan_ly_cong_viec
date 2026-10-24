@@ -17,50 +17,48 @@ class AboutPage extends StatelessWidget {
       backgroundColor: colorTheme.light,
       appBar: AppBar(
         title: Text(translate('Giới thiệu')),
-        centerTitle: true,
-        elevation: 0,
         backgroundColor: colorTheme.primary,
         foregroundColor: Colors.black,
+        elevation: 0,
       ),
       body: Center(
         child: Container(
-          padding: const EdgeInsets.all(32),
-          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
+          margin: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: colorTheme.primary,
-            borderRadius: BorderRadius.circular(16),
+            color: colorTheme.primary.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(15),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Icon(Icons.groups, size: 80, color: colorTheme.dark),
+              Icon(Icons.group, size: 50, color: colorTheme.dark),
+              const SizedBox(height: 10),
+              Text(
+                translate('Thông tin nhóm'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const SizedBox(height: 16),
-              Center(
+              const SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerLeft,
                 child: Text(
-                  translate('Thông tin nhóm'),
+                  '${translate('Tên nhóm:')} Nhóm 12',
                   style: const TextStyle(
-                    fontSize: 22,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              
-              const SizedBox(height: 16),
-              Text(
-                translate('Thành viên:'),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${translate('Thành viên:')}\n1. Lê Văn Tuấn - 23010330',
+                  style: const TextStyle(fontSize: 15),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '1. Lê Văn Tuấn-23010330 \n2. Trần Quang Huy-24100425',
-                style: TextStyle(fontSize: 18, height: 1.5),
               ),
             ],
           ),

@@ -27,78 +27,125 @@ class DialogBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const textColor = Color(0xFF2D2A26);
+
     return AlertDialog(
-      backgroundColor: colorTheme.primary,
-      content: SizedBox(
-        height: 260,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                hintText: translate('Thêm Công Việc'),
+      backgroundColor: colorTheme.light,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      contentPadding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              hintText: translate('Thêm Công Việc'),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: colorTheme.dark, width: 1.5),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
                   translate('Ngày thực hiện:'),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: onPickTaskDate,
-                  icon: const Icon(Icons.calendar_today, size: 18),
-                  label: Text(selectedTaskDate),
+              ),
+              OutlinedButton.icon(
+                onPressed: onPickTaskDate,
+                icon: Icon(Icons.calendar_today, size: 16, color: colorTheme.dark),
+                label: Text(
+                  selectedTaskDate,
+                  style: TextStyle(color: colorTheme.dark),
                 ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: BorderSide(color: colorTheme.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
                   translate('Phân Loại:'),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
                 ),
-                const SizedBox(width: 10),
-                DropdownButton<String>(
-                  value: selectedCategory,
-                  items: <String>['Ngày', 'Tuần', 'Tháng', 'Năm'].map((
-                    String value,
-                  ) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(translate(value)),
-                    );
-                  }).toList(),
-                  onChanged: onCategoryChanged,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colorTheme.primary),
                 ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                MaterialButton(
-                  onPressed: onSave,
-                  color: colorTheme.dark,
-                  textColor: Colors.white,
-                  child: Text(translate('Lưu')),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedCategory,
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    items: <String>['Ngày', 'Tuần', 'Tháng', 'Năm'].map((
+                      String value,
+                    ) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(translate(value)),
+                      );
+                    }).toList(),
+                    onChanged: onCategoryChanged,
+                  ),
                 ),
-                const SizedBox(width: 8),
-                MaterialButton(
-                  onPressed: onCancel,
-                  color: colorTheme.dark,
-                  textColor: Colors.white,
-                  child: Text(translate('Hủy')),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      actions: [
+        TextButton(
+          onPressed: onCancel,
+          child: Text(
+            translate('Hủy'),
+            style: TextStyle(color: colorTheme.dark),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: onSave,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colorTheme.dark,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text(translate('Lưu')),
+        ),
+      ],
     );
   }
 }

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart' show Hive;
@@ -9,11 +8,14 @@ import 'package:todoapp/pages/history_page.dart';
 import 'package:todoapp/theme/app_colors.dart';
 import 'package:todoapp/until/dialog_box.dart';
 import 'package:todoapp/until/todo_tile.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
+
 class _HomePageState extends State<HomePage> {
   final _myBox = Hive.box('box_v3');
   ToDoDaTaBase db = ToDoDaTaBase();
@@ -21,10 +23,11 @@ class _HomePageState extends State<HomePage> {
   late AppColorTheme _colorTheme;
   Uint8List? _backgroundImageBytes;
   final _imagePicker = ImagePicker();
+
   String translate(String text) {
     if (isVietnamese) return text;
     switch (text) {
-      case 'việc cần làm ':
+      case 'Việc Cần Làm':
         return 'To-Do List';
       case 'Ngày':
         return 'Daily';
@@ -90,6 +93,7 @@ class _HomePageState extends State<HomePage> {
         return text;
     }
   }
+
   @override
   void initState() {
     _colorTheme = AppColorTheme.fromId(_myBox.get('APP_COLOR_THEME'));
@@ -104,6 +108,7 @@ class _HomePageState extends State<HomePage> {
     }
     super.initState();
   }
+
   final _controller = TextEditingController();
   String _selectedCategory = 'Ngày';
   String _currentFilter = 'Tất cả';
@@ -130,6 +135,7 @@ class _HomePageState extends State<HomePage> {
     }
     return taskCategory == _currentFilter;
   }
+
   void checkBoxChanged(bool? value, int index) {
     setState(() {
       final newCompleted = !db.toDoList[index][1];
@@ -151,6 +157,7 @@ class _HomePageState extends State<HomePage> {
       ),
     ).then((_) => setState(() {}));
   }
+
   void saveNewTask() {
     final taskName = _controller.text.trim();
     if (taskName.isEmpty) return;
@@ -218,12 +225,14 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+
   void deleteTask(int index) {
     setState(() {
       db.toDoList.removeAt(index);
     });
     db.updateData();
   }
+
   Future<void> _pickBackgroundImage() async {
     final XFile? image = await _imagePicker.pickImage(
       source: ImageSource.gallery,
@@ -236,31 +245,41 @@ class _HomePageState extends State<HomePage> {
     });
     await _myBox.put('BACKGROUND_IMAGE_BYTES', bytes);
   }
+
   Future<void> _removeBackgroundImage() async {
     setState(() {
       _backgroundImageBytes = null;
     });
     await _myBox.delete('BACKGROUND_IMAGE_BYTES');
   }
+
   void _selectColorTheme(AppColorTheme theme) {
     setState(() {
       _colorTheme = theme;
     });
     _myBox.put('APP_COLOR_THEME', theme.id);
   }
+
   void _showColorPicker() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: _colorTheme.primary,
+          backgroundColor: _colorTheme.light,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(
             translate('Chọn màu giao diện'),
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D2A26),
+            ),
           ),
           content: Wrap(
-            spacing: 12,
-            runSpacing: 12,
+            spacing: 14,
+            runSpacing: 14,
             alignment: WrapAlignment.center,
             children: AppColorTheme.themes.map((theme) {
               final isSelected = theme.id == _colorTheme.id;
@@ -279,19 +298,19 @@ class _HomePageState extends State<HomePage> {
                         color: theme.primary,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? Colors.black : Colors.white,
-                          width: isSelected ? 3 : 1,
+                          color: isSelected ? theme.dark : Colors.white,
+                          width: isSelected ? 3 : 2,
                         ),
-                        boxShadow: const [
+                        boxShadow: [
                           BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
+                            color: theme.dark.withValues(alpha: 0.25),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       child: isSelected
-                          ? const Icon(Icons.check, color: Colors.black)
+                          ? Icon(Icons.check, color: theme.dark)
                           : null,
                     ),
                     const SizedBox(height: 4),
@@ -299,7 +318,8 @@ class _HomePageState extends State<HomePage> {
                       theme.label(isVietnamese),
                       style: const TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2D2A26),
                       ),
                     ),
                   ],
@@ -310,13 +330,17 @@ class _HomePageState extends State<HomePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(translate('Hủy')),
+              child: Text(
+                translate('Hủy'),
+                style: TextStyle(color: _colorTheme.dark),
+              ),
             ),
           ],
         );
       },
     );
   }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -330,14 +354,35 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
+
+  Widget _menuItemRow(IconData icon, String label) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF2D2A26)),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2D2A26),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _colorTheme.light,
       appBar: AppBar(
-        title: Text(translate('Ứng dụng quản lý công việc')),
+        title: Text(
+          translate('Việc Cần Làm'),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
         elevation: 0,
+        scrolledUnderElevation: 0,
         backgroundColor: _colorTheme.primary,
         foregroundColor: Colors.black,
         actions: [
@@ -362,35 +407,40 @@ class _HomePageState extends State<HomePage> {
             onPressed: () => _selectDate(context),
           ),
           Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: DropdownButton<String>(
-              dropdownColor: _colorTheme.primary,
-              icon: const Icon(Icons.filter_list, color: Colors.black),
-              value: _currentFilter,
-              items: _filterOptions.map((
-                String value,
-              ) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(
-                    translate(value),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _currentFilter = newValue!;
-                });
-              },
+            padding: const EdgeInsets.only(right: 4.0),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                dropdownColor: _colorTheme.light,
+                borderRadius: BorderRadius.circular(12),
+                icon: const Icon(Icons.filter_list, color: Colors.black),
+                value: _currentFilter,
+                items: _filterOptions.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(
+                      translate(value),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF2D2A26),
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _currentFilter = newValue!;
+                  });
+                },
+              ),
             ),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.settings, color: Colors.black),
             tooltip: translate('Cài đặt'),
-            color: _colorTheme.primary,
+            color: _colorTheme.light,
+            surfaceTintColor: Colors.transparent,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
             onSelected: (value) {
               if (value == 'language') {
@@ -421,86 +471,45 @@ class _HomePageState extends State<HomePage> {
               return [
                 PopupMenuItem<String>(
                   value: 'language',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.language, color: Colors.black),
-                      const SizedBox(width: 10),
-                      Text(
-                        isVietnamese
-                            ? 'Ngôn ngữ: 🇻🇳 VN'
-                            : 'Language: 🇬🇧 EN',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  child: _menuItemRow(
+                    Icons.language,
+                    isVietnamese ? 'Ngôn ngữ: 🇻🇳 VN' : 'Language: 🇬🇧 EN',
                   ),
                 ),
                 PopupMenuItem<String>(
                   value: 'color',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.palette, color: Colors.black),
-                      const SizedBox(width: 10),
-                      Text(
-                        translate('Đổi màu giao diện'),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  child: _menuItemRow(
+                    Icons.palette,
+                    translate('Đổi màu giao diện'),
                   ),
                 ),
                 PopupMenuItem<String>(
                   value: 'background',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.wallpaper, color: Colors.black),
-                      const SizedBox(width: 10),
-                      Text(
-                        translate('Đổi ảnh nền'),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  child: _menuItemRow(
+                    Icons.wallpaper,
+                    translate('Đổi ảnh nền'),
                   ),
                 ),
                 if (_hasBackgroundImage)
                   PopupMenuItem<String>(
                     value: 'remove_background',
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.image_not_supported,
-                          color: Colors.black,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          translate('Xóa ảnh nền'),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                    child: _menuItemRow(
+                      Icons.image_not_supported,
+                      translate('Xóa ảnh nền'),
                     ),
                   ),
                 PopupMenuItem<String>(
                   value: 'history',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.history, color: Colors.black),
-                      const SizedBox(width: 10),
-                      Text(
-                        translate('Lịch sử công việc'),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  child: _menuItemRow(
+                    Icons.history,
+                    translate('Lịch sử công việc'),
                   ),
                 ),
                 PopupMenuItem<String>(
                   value: 'about',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: Colors.black),
-                      const SizedBox(width: 10),
-                      Text(
-                        translate('Giới thiệu'),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  child: _menuItemRow(
+                    Icons.info_outline,
+                    translate('Giới thiệu'),
                   ),
                 ),
               ];
@@ -510,8 +519,9 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: createNewTask,
-        backgroundColor: _colorTheme.primary,
-        foregroundColor: Colors.black,
+        backgroundColor: _colorTheme.dark,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         child: const Icon(Icons.add),
       ),
       body: Stack(
@@ -529,10 +539,18 @@ class _HomePageState extends State<HomePage> {
             ColoredBox(color: Colors.black.withValues(alpha: 0.25)),
           Column(
             children: [
+              // Dải thông báo dạng thẻ bo góc
               Container(
                 width: double.infinity,
-                color: _colorTheme.dark,
-                padding: const EdgeInsets.all(8.0),
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: _colorTheme.dark,
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: Text(
                   _currentFilter == 'Tất cả'
                       ? "${translate('Đang xem tất cả việc chưa hoàn thành:')} $_viewDate"
@@ -541,13 +559,15 @@ class _HomePageState extends State<HomePage> {
                       : "${translate('Đang xem công việc của hôm nay:')} $_viewDate",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
               ),
               Expanded(
                 child: ListView.builder(
+                  // chừa chỗ cho nút + không che ô việc cuối
+                  padding: const EdgeInsets.only(bottom: 90),
                   itemCount: db.toDoList.length,
                   itemBuilder: (context, index) {
                     String taskName = db.toDoList[index][0];
