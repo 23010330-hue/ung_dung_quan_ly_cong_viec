@@ -10,6 +10,7 @@ class ToDoTile extends StatelessWidget {
   final Function(bool?)? onChanged;
   final Function(BuildContext)? deleteFunction;
   final AppColorTheme colorTheme;
+  final VoidCallback? onTap;
 
   const ToDoTile({
     super.key,
@@ -20,6 +21,7 @@ class ToDoTile extends StatelessWidget {
     required this.onChanged,
     required this.deleteFunction,
     required this.colorTheme,
+    this.onTap,
   });
 
   @override
@@ -42,7 +44,10 @@ class ToDoTile extends StatelessWidget {
             ),
           ],
         ),
-        child: Container(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.92),
             borderRadius: BorderRadius.circular(16),
@@ -141,6 +146,7 @@ class ToDoTile extends StatelessWidget {
               ),
             ),
           ),
+        ),
         ),
       ),
     );

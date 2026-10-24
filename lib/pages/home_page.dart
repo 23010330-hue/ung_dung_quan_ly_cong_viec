@@ -5,8 +5,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:todoapp/data/database.dart';
 import 'package:todoapp/pages/about_page.dart';
 import 'package:todoapp/pages/history_page.dart';
+import 'package:todoapp/pages/stats_page.dart';
 import 'package:todoapp/theme/app_colors.dart';
 import 'package:todoapp/until/dialog_box.dart';
+import 'package:todoapp/until/task_search_field.dart';
 import 'package:todoapp/until/todo_tile.dart';
 
 class HomePage extends StatefulWidget {
@@ -89,6 +91,42 @@ class _HomePageState extends State<HomePage> {
         return 'No completed tasks yet';
       case 'Xem lịch sử hoàn thành':
         return 'View completed history';
+      case 'Thống kê':
+        return 'Statistics';
+      case 'Tổng số việc':
+        return 'Total tasks';
+      case 'Đã hoàn thành':
+        return 'Completed';
+      case 'Chưa hoàn thành':
+        return 'Pending';
+      case 'Tỉ lệ hoàn thành':
+        return 'Completion rate';
+      case 'Hoàn thành 7 ngày qua':
+        return 'Completed in the last 7 days';
+      case 'Theo phân loại':
+        return 'By category';
+      case 'Tìm kiếm':
+        return 'Search';
+      case 'Tìm công việc...':
+        return 'Search tasks...';
+      case 'Đóng tìm kiếm':
+        return 'Close search';
+      case 'Kết quả tìm kiếm cho:':
+        return 'Search results for:';
+      case 'Không tìm thấy việc nào':
+        return 'No tasks found';
+      case 'Thử từ khóa khác':
+        return 'Try a different keyword';
+      case 'Sửa công việc':
+        return 'Edit Task';
+      case 'Đã xóa công việc':
+        return 'Task deleted';
+      case 'Hoàn tác':
+        return 'Undo';
+      case 'Chưa có việc nào':
+        return 'Nothing to do yet';
+      case 'Bấm + để thêm công việc mới':
+        return 'Tap + to add a new task';
       default:
         return text;
     }
@@ -97,6 +135,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     _colorTheme = AppColorTheme.fromId(_myBox.get('APP_COLOR_THEME'));
+    isVietnamese = _myBox.get('IS_VIETNAMESE', defaultValue: true) as bool;
     final storedBytes = _myBox.get('BACKGROUND_IMAGE_BYTES');
     if (storedBytes != null) {
       _backgroundImageBytes = Uint8List.fromList(List<int>.from(storedBytes));
@@ -114,6 +153,10 @@ class _HomePageState extends State<HomePage> {
   String _currentFilter = 'Tất cả';
   String? _selectedDateFilter;
   String _selectedTaskDate = '';
+  int? _editingIndex; // null = đang thêm mới, khác null = đang sửa việc này
+  bool _isSearching = false;
+  String _searchQuery = '';
+  final _searchController = TextEditingController();
   static const _filterOptions = ['Tất cả', 'Ngày', 'Tuần', 'Tháng', 'Năm'];
 
   bool get _hasBackgroundImage =>
@@ -122,11 +165,31 @@ class _HomePageState extends State<HomePage> {
   /// Ngày đang xem: ngày chọn trên lịch, hoặc hôm nay nếu chưa chọn.
   String get _viewDate => _selectedDateFilter ?? db.getToday();
 
+  void _startSearch() {
+    setState(() {
+      _isSearching = true;
+    });
+  }
+
+  void _stopSearch() {
+    setState(() {
+      _isSearching = false;
+      _searchQuery = '';
+      _searchController.clear();
+    });
+  }
+
   bool _shouldShowTask(
+    String taskName,
     String taskCategory,
     String taskDate,
     bool taskCompleted,
   ) {
+    // Đang tìm kiếm: tìm trong mọi việc chưa hoàn thành, bỏ qua bộ lọc ngày
+    if (_searchQuery.isNotEmpty) {
+      return !taskCompleted &&
+          taskName.toLowerCase().contains(_searchQuery.toLowerCase());
+    }
     if (!db.taskMatchesPeriod(taskCategory, taskDate, _viewDate)) {
       return false;
     }
@@ -134,6 +197,52 @@ class _HomePageState extends State<HomePage> {
       return !taskCompleted;
     }
     return taskCategory == _currentFilter;
+  }
+
+  bool get _hasVisibleTasks => db.toDoList.any(
+        (task) => _shouldShowTask(task[0], task[2], task[3], task[1]),
+      );
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(32),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.task_alt,
+              size: 56,
+              color: _colorTheme.dark.withValues(alpha: 0.7),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _searchQuery.isNotEmpty
+                  ? translate('Không tìm thấy việc nào')
+                  : translate('Chưa có việc nào'),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2D2A26),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _searchQuery.isNotEmpty
+                  ? translate('Thử từ khóa khác')
+                  : translate('Bấm + để thêm công việc mới'),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void checkBoxChanged(bool? value, int index) {
@@ -158,21 +267,30 @@ class _HomePageState extends State<HomePage> {
     ).then((_) => setState(() {}));
   }
 
-  void saveNewTask() {
+  void _saveTask() {
     final taskName = _controller.text.trim();
     if (taskName.isEmpty) return;
 
     setState(() {
-      db.toDoList.add([
-        taskName,
-        false,
-        _selectedCategory,
-        _selectedTaskDate,
-        null,
-      ]);
+      final editIndex = _editingIndex;
+      if (editIndex != null && editIndex < db.toDoList.length) {
+        // đang sửa: chỉ đổi tên, phân loại, ngày; giữ nguyên trạng thái hoàn thành
+        db.toDoList[editIndex][0] = taskName;
+        db.toDoList[editIndex][2] = _selectedCategory;
+        db.toDoList[editIndex][3] = _selectedTaskDate;
+      } else {
+        db.toDoList.add([
+          taskName,
+          false,
+          _selectedCategory,
+          _selectedTaskDate,
+          null,
+        ]);
+      }
       _controller.clear();
       _selectedCategory = 'Ngày';
       _selectedTaskDate = db.getToday();
+      _editingIndex = null;
     });
     Navigator.of(context).pop();
     db.updateData();
@@ -194,20 +312,36 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void createNewTask() {
-    _selectedTaskDate = _viewDate;
+  void createNewTask() => _openTaskDialog();
+
+  /// Mở hộp thoại thêm việc mới, hoặc sửa việc có chỉ số [editIndex].
+  void _openTaskDialog({int? editIndex}) {
+    _editingIndex = editIndex;
+    if (editIndex != null) {
+      final task = db.toDoList[editIndex];
+      _controller.text = task[0] as String;
+      _selectedCategory = task[2] as String;
+      _selectedTaskDate = task[3] as String;
+    } else {
+      _controller.clear();
+      _selectedCategory = 'Ngày';
+      _selectedTaskDate = _viewDate;
+    }
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return DialogBox(
+              title: editIndex != null ? translate('Sửa công việc') : null,
               controller: _controller,
-              onSave: saveNewTask,
+              onSave: _saveTask,
               onCancel: () {
                 Navigator.of(context).pop();
                 _controller.clear();
+                _selectedCategory = 'Ngày';
                 _selectedTaskDate = db.getToday();
+                _editingIndex = null;
               },
               selectedCategory: _selectedCategory,
               onCategoryChanged: (String? newValue) {
@@ -227,10 +361,35 @@ class _HomePageState extends State<HomePage> {
   }
 
   void deleteTask(int index) {
+    final removed = db.toDoList[index];
     setState(() {
       db.toDoList.removeAt(index);
     });
     db.updateData();
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(translate('Đã xóa công việc')),
+        backgroundColor: _colorTheme.dark,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        action: SnackBarAction(
+          label: translate('Hoàn tác'),
+          textColor: Colors.white,
+          onPressed: () {
+            setState(() {
+              final at = index > db.toDoList.length
+                  ? db.toDoList.length
+                  : index;
+              db.toDoList.insert(at, removed);
+            });
+            db.updateData();
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _pickBackgroundImage() async {
@@ -376,16 +535,39 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: _colorTheme.light,
       appBar: AppBar(
-        title: Text(
-          translate('Việc Cần Làm'),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: _isSearching
+            ? TaskSearchField(
+                controller: _searchController,
+                hint: translate('Tìm công việc...'),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.trim();
+                  });
+                },
+              )
+            : Text(
+                translate('Việc Cần Làm'),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: _colorTheme.primary,
         foregroundColor: Colors.black,
-        actions: [
+        actions: _isSearching
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.black),
+                  tooltip: translate('Đóng tìm kiếm'),
+                  onPressed: _stopSearch,
+                ),
+              ]
+            : [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.black),
+            tooltip: translate('Tìm kiếm'),
+            onPressed: _startSearch,
+          ),
           IconButton(
             icon: const Icon(Icons.history, color: Colors.black),
             tooltip: translate('Xem lịch sử hoàn thành'),
@@ -447,6 +629,7 @@ class _HomePageState extends State<HomePage> {
                 setState(() {
                   isVietnamese = !isVietnamese;
                 });
+                _myBox.put('IS_VIETNAMESE', isVietnamese);
               } else if (value == 'color') {
                 _showColorPicker();
               } else if (value == 'background') {
@@ -455,6 +638,17 @@ class _HomePageState extends State<HomePage> {
                 _removeBackgroundImage();
               } else if (value == 'history') {
                 _openHistoryPage();
+              } else if (value == 'stats') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StatsPage(
+                      db: db,
+                      translate: translate,
+                      colorTheme: _colorTheme,
+                    ),
+                  ),
+                );
               } else if (value == 'about') {
                 Navigator.push(
                   context,
@@ -506,6 +700,13 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 PopupMenuItem<String>(
+                  value: 'stats',
+                  child: _menuItemRow(
+                    Icons.bar_chart,
+                    translate('Thống kê'),
+                  ),
+                ),
+                PopupMenuItem<String>(
                   value: 'about',
                   child: _menuItemRow(
                     Icons.info_outline,
@@ -552,7 +753,9 @@ class _HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
-                  _currentFilter == 'Tất cả'
+                  _searchQuery.isNotEmpty
+                      ? "${translate('Kết quả tìm kiếm cho:')} '$_searchQuery'"
+                      : _currentFilter == 'Tất cả'
                       ? "${translate('Đang xem tất cả việc chưa hoàn thành:')} $_viewDate"
                       : _selectedDateFilter != null
                       ? "${translate('Đang xem công việc của ngày:')} $_viewDate"
@@ -565,7 +768,9 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               Expanded(
-                child: ListView.builder(
+                child: !_hasVisibleTasks
+                    ? _buildEmptyState()
+                    : ListView.builder(
                   // chừa chỗ cho nút + không che ô việc cuối
                   padding: const EdgeInsets.only(bottom: 90),
                   itemCount: db.toDoList.length,
@@ -575,6 +780,7 @@ class _HomePageState extends State<HomePage> {
                     String taskCategory = db.toDoList[index][2];
                     String taskDate = db.toDoList[index][3];
                     if (!_shouldShowTask(
+                      taskName,
                       taskCategory,
                       taskDate,
                       taskCompleted,
@@ -588,6 +794,7 @@ class _HomePageState extends State<HomePage> {
                       taskDate: taskDate,
                       onChanged: (value) => checkBoxChanged(value, index),
                       deleteFunction: (context) => deleteTask(index),
+                      onTap: () => _openTaskDialog(editIndex: index),
                       colorTheme: _colorTheme,
                     );
                   },

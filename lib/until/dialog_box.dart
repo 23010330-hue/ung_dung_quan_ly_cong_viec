@@ -11,9 +11,11 @@ class DialogBox extends StatelessWidget {
   final VoidCallback onPickTaskDate;
   final String Function(String) translate;
   final AppColorTheme colorTheme;
+  final String? title;
 
   const DialogBox({
     super.key,
+    this.title,
     required this.controller,
     required this.onSave,
     required this.onCancel,
@@ -38,6 +40,17 @@ class DialogBox extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (title != null) ...[
+            Text(
+              title!,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: colorTheme.dark,
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
           TextField(
             controller: controller,
             autofocus: true,
