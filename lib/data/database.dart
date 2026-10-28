@@ -1,8 +1,18 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:todoapp/services/auth_service.dart';
 
 class ToDoDaTaBase {
   List toDoList = [];
   final _myBox = Hive.box('box_v3');
+
+  /// Mỗi tài khoản có một danh sách việc riêng: TODOLIST_<tên đăng nhập>.
+  String get _listKey {
+    final user = AuthService.instance.currentUsername;
+    return user == null ? 'TODOLIST' : 'TODOLIST_${user.toLowerCase()}';
+  }
+
+  /// Tài khoản hiện tại đã có dữ liệu lưu chưa.
+  bool get hasSavedData => _myBox.get(_listKey) != null;
 
   String getToday() {
     return formatDate(DateTime.now());
@@ -62,11 +72,9 @@ class ToDoDaTaBase {
     }
   }
 
+  /// Tài khoản mới bắt đầu với danh sách trống.
   void createInitialData() {
-    toDoList = [
-      ["Lập kế hoạch", false, "Ngày", getToday(), null],
-      ["Tập Thể dục", false, "Ngày", getToday(), null],
-    ];
+    toDoList = [];
   }
 
   void ensureTaskFields(List task) {
@@ -108,13 +116,13 @@ class ToDoDaTaBase {
   }
 
   void loadData() {
-    toDoList = _myBox.get("TODOLIST");
+    toDoList = _myBox.get(_listKey);
     for (int i = 0; i < toDoList.length; i++) {
       ensureTaskFields(toDoList[i]);
     }
   }
 
   void updateData() {
-    _myBox.put("TODOLIST", toDoList);
+    _myBox.put(_listKey, toDoList);
   }
 }
