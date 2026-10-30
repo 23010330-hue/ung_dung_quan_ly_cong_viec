@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:todoapp/focus/focus_audio.dart';
 import 'package:todoapp/focus/focus_sound.dart';
+import 'package:todoapp/shop/sound_inventory.dart';
 import 'package:todoapp/theme/app_colors.dart';
+import 'package:todoapp/until/marquee_text.dart';
+import 'package:todoapp/until/sound_disc.dart';
 
-/// Bảng chọn đĩa nhạc trượt từ dưới lên: mỗi âm thanh là một đĩa than.
-/// Bấm vào đĩa là chọn ngay (lúc chưa tập trung sẽ nghe thử vài giây).
+/// Bảng chọn đĩa nhạc cho phiên tập trung, trượt từ dưới lên: chỉ gồm "không phát nhạc"
+/// và các đĩa đã có trong kho. Bấm vào đĩa là chọn ngay (lúc chưa tập trung sẽ nghe thử vài giây).
 Future<void> showSoundPicker({
   required BuildContext context,
   required FocusAudio audio,
   required AppColorTheme colorTheme,
-  required bool isVietnamese,
   required String Function(String) translate,
 }) {
   return showModalBottomSheet<void>(
@@ -23,26 +25,19 @@ Future<void> showSoundPicker({
     builder: (_) => _SoundPickerSheet(
       audio: audio,
       colorTheme: colorTheme,
-      isVietnamese: isVietnamese,
       translate: translate,
     ),
   ).whenComplete(audio.stopPreview);
 }
 
-/// Màu nhãn đĩa hiển thị cho một âm thanh (đĩa "không phát nhạc" dùng màu giao diện).
-Color soundLabelColor(FocusSound sound, AppColorTheme theme) =>
-    sound.asset == null ? theme.primary : sound.color;
-
 class _SoundPickerSheet extends StatefulWidget {
   final FocusAudio audio;
   final AppColorTheme colorTheme;
-  final bool isVietnamese;
   final String Function(String) translate;
 
   const _SoundPickerSheet({
     required this.audio,
     required this.colorTheme,
-    required this.isVietnamese,
     required this.translate,
   });
 
@@ -76,10 +71,7 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
   }
 
   Widget _tile(FocusSound sound, bool selected) {
-    final label = soundLabelColor(sound, _theme);
-    final disc = CustomPaint(painter: _DiscPainter(label: label));
-    final spinning = selected && sound.asset != null;
-
+    final spinning = selected && sound.cover != null;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () => widget.audio.select(sound.id),
@@ -108,16 +100,7 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
                       ),
                       child: Padding(
                         padding: EdgeInsets.all(selected ? 3 : 0),
-                        child: spinning
-                            ? RotationTransition(turns: _spin, child: disc)
-                            : disc,
-                      ),
-                    ),
-                    Center(
-                      child: Icon(
-                        sound.icon,
-                        size: 24,
-                        color: Color.lerp(label, Colors.black, 0.55),
+                        child: SoundDisc(sound: sound, spin: spinning ? _spin : null),
                       ),
                     ),
                     if (selected)
@@ -139,14 +122,10 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            sound.name(widget.isVietnamese),
-            maxLines: 2,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
+          MarqueeText(
+            text: translate(sound.name),
             style: TextStyle(
               fontSize: 13,
-              height: 1.2,
               fontWeight: selected ? FontWeight.bold : FontWeight.w500,
               color: _textColor,
             ),
@@ -162,9 +141,10 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: ListenableBuilder(
-          listenable: widget.audio,
+          listenable: Listenable.merge([widget.audio, SoundInventory.instance]),
           builder: (context, _) {
             final selectedId = widget.audio.selectedId;
+            final sounds = [...SoundInventory.instance.ownedSounds, kNoSound];
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,8 +171,7 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
                     crossAxisSpacing: 10,
                     childAspectRatio: 0.82,
                     children: [
-                      for (final sound in kFocusSounds)
-                        _tile(sound, sound.id == selectedId),
+                      for (final sound in sounds) _tile(sound, sound.id == selectedId),
                     ],
                   ),
                 ),
@@ -229,64 +208,4 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
       ),
     );
   }
-}
-
-/// Đĩa than thu nhỏ: mặt đĩa đen có rãnh, nhãn màu ở giữa kèm cung trang trí
-/// (để thấy đĩa quay). Biểu tượng được đặt đứng yên phía trên bằng widget.
-class _DiscPainter extends CustomPainter {
-  final Color label;
-
-  const _DiscPainter({required this.label});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final r = size.shortestSide / 2;
-
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..shader = const RadialGradient(
-          colors: [Color(0xFF2E2E2E), Color(0xFF0E0E0E)],
-          stops: [0.3, 1.0],
-        ).createShader(Rect.fromCircle(center: c, radius: r)),
-    );
-
-    final groove = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.6;
-    var i = 0;
-    for (double k = 0.5; k < 0.97; k += 0.06) {
-      groove.color = Colors.white.withValues(alpha: i.isEven ? 0.12 : 0.05);
-      canvas.drawCircle(c, r * k, groove);
-      i++;
-    }
-
-    final lr = r * 0.46;
-    canvas.drawCircle(c, lr, Paint()..color = label);
-    canvas.drawArc(
-      Rect.fromCircle(center: c, radius: lr * 0.80),
-      0.3,
-      1.6,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = lr * 0.14
-        ..strokeCap = StrokeCap.round
-        ..color = Color.lerp(label, Colors.black, 0.35)!.withValues(alpha: 0.7),
-    );
-    canvas.drawCircle(
-      c,
-      lr,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..color = Color.lerp(label, Colors.black, 0.4)!.withValues(alpha: 0.6),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _DiscPainter oldDelegate) =>
-      oldDelegate.label != label;
 }

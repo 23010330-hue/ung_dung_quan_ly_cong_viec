@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart' show Hive;
+import 'package:todoapp/coins/coin_service.dart';
 import 'package:todoapp/data/database.dart';
+import 'package:todoapp/focus/focus_audio.dart';
 import 'package:todoapp/focus/focus_page.dart';
 import 'package:todoapp/pages/account_page.dart';
-import 'package:todoapp/pages/coming_soon_page.dart';
 import 'package:todoapp/pages/login_page.dart';
 import 'package:todoapp/pages/schedule_page.dart';
 import 'package:todoapp/pages/stats_page.dart';
 import 'package:todoapp/services/auth_service.dart';
+import 'package:todoapp/shop/inventory_page.dart';
+import 'package:todoapp/shop/shop_page.dart';
+import 'package:todoapp/shop/sound_inventory.dart';
 import 'package:todoapp/theme/app_colors.dart';
 import 'package:todoapp/until/app_strings.dart';
 import 'package:todoapp/until/main_bottom_bar.dart';
@@ -29,6 +33,10 @@ class _HomePageState extends State<HomePage> {
   AppTab _current = AppTab.schedule;
   bool _pickerOpen = false;
 
+  // Bộ phát nhạc dùng chung cho trang Tập trung và trang Kho.
+  // Tạo muộn (lúc dựng giao diện) để chạy sau khi kho đĩa đã nạp xong trong initState.
+  late final FocusAudio _audio = FocusAudio();
+
   String translate(String text) => translateText(text, _isVietnamese);
 
   @override
@@ -38,11 +46,19 @@ class _HomePageState extends State<HomePage> {
     _isVietnamese = _myBox.get('IS_VIETNAMESE', defaultValue: true) as bool;
     // tính năng ảnh nền đã bỏ: dọn ảnh cũ cho nhẹ bộ nhớ
     _myBox.delete('BACKGROUND_IMAGE_BYTES');
+    CoinService.instance.load(); // nạp ví coin của tài khoản vừa đăng nhập
+    SoundInventory.instance.load(); // nạp kho đĩa của tài khoản vừa đăng nhập
     if (!db.hasSavedData) {
       db.createInitialData();
     } else {
       db.loadData();
     }
+  }
+
+  @override
+  void dispose() {
+    _audio.dispose();
+    super.dispose();
   }
 
   void _selectTab(AppTab tab) {
@@ -92,19 +108,14 @@ class _HomePageState extends State<HomePage> {
           IndexedStack(
             index: _current.index,
             children: [
-              ComingSoonPage(
-                title: translate('Cửa hàng âm thanh'),
-                badge: translate('Sắp ra mắt'),
-                message: translate('Cửa hàng âm thanh sẽ mở ở bước tiếp theo.'),
-                icon: Icons.storefront,
+              ShopPage(
                 colorTheme: _colorTheme,
+                translate: translate,
               ),
-              ComingSoonPage(
-                title: translate('Kho của tôi'),
-                badge: translate('Sắp ra mắt'),
-                message: translate('Nơi cất các âm thanh bạn đã mua sẽ ở đây.'),
-                icon: Icons.inventory_2,
+              InventoryPage(
                 colorTheme: _colorTheme,
+                translate: translate,
+                audio: _audio,
               ),
               SchedulePage(
                 db: db,
@@ -113,8 +124,8 @@ class _HomePageState extends State<HomePage> {
               ),
               FocusPage(
                 colorTheme: _colorTheme,
-                isVietnamese: _isVietnamese,
                 translate: translate,
+                audio: _audio,
               ),
               StatsPage(
                 db: db,

@@ -84,6 +84,9 @@ class ToDoDaTaBase {
     if (task.length < 5) {
       task.add(task[1] == true ? today : null);
     }
+    // task[5]: đã xét thưởng coin chưa. Việc đã hoàn thành từ trước khi có coin
+    // coi như đã xét, để không ai tích lại việc cũ mà nhận coin.
+    if (task.length < 6) task.add(task[1] == true);
   }
 
   String? getCompletedDate(List task) {

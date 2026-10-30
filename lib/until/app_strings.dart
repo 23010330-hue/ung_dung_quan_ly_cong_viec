@@ -94,6 +94,43 @@ const Map<String, String> _english = {
   'Chạm vào đĩa để nghe thử. Nhạc phát khi bạn bắt đầu tập trung.':
       'Tap a record to preview it. It plays when you start focusing.',
   'Đĩa mới sẽ có ở Cửa hàng âm thanh.': 'New records will arrive in the Sound Shop.',
+  // Coin
+  'Bạn còn đó không?': 'Are you still there?',
+  'Đồng hồ đã tạm dừng để kiểm tra. Bấm nút để tập trung tiếp.':
+      'The timer paused to check on you. Tap the button to keep focusing.',
+  'Tôi còn đây': "I'm here",
+  'Hôm nay bạn đã nhận đủ coin từ tập trung.':
+      "You've earned all your focus coins for today.",
+  'Chỉ nhận một phần vì chạm giới hạn hôm nay.':
+      "Only part counted because you hit today's limit.",
+  'Coin của tôi': 'My coins',
+  'Hôm nay': 'Today',
+  'Cách kiếm coin': 'How to earn coins',
+  'Lịch sử coin': 'Coin history',
+  'Chưa có giao dịch coin nào': 'No coin activity yet',
+  'Phiên tập trung': 'Focus session',
+  'Việc đúng hạn': 'On-time task',
+  'việc': 'task',
+  // Cửa hàng và Kho
+  'Chạm vào đĩa để nghe thử và mua bằng coin.': 'Tap a record to preview it and buy it with coins.',
+  'Chạm vào đĩa để dùng cho phiên tập trung.': 'Tap a record to use it for focus sessions.',
+  'Mua': 'Buy',
+  'Mua đĩa': 'Bought record',
+  'Nghe thử': 'Preview',
+  'Dừng': 'Stop',
+  'Đã sở hữu': 'Owned',
+  'Đã có trong Kho': 'In your inventory',
+  'Đang dùng': 'In use',
+  'Cần thêm': 'Need',
+  'Chưa đủ coin': 'Not enough coins',
+  'Đang tập trung nên chưa nghe thử được.': "Can't preview during a focus session.",
+  // Tên đĩa
+  'Lofi đĩa than': 'Lofi vinyl',
+  'Mưa rơi': 'Rain',
+  'Sóng biển': 'Ocean waves',
+  'Tiếng ồn nâu': 'Brown noise',
+  'Lửa trại': 'Campfire',
+  'Không phát nhạc': 'No sound',
 };
 
 String translateText(String text, bool isVietnamese) {

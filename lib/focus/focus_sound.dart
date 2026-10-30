@@ -1,94 +1,93 @@
-import 'package:flutter/material.dart';
-
-/// Một âm thanh có thể phát trong lúc tập trung.
+/// Một đĩa nhạc: nhạc nền để nghe khi tập trung.
 ///
-/// Về sau cửa hàng dùng chung danh mục này: [price] = 0 là miễn phí,
-/// lớn hơn 0 là phải mua bằng coin.
+/// Muốn thêm đĩa mới chỉ cần 3 việc:
+///   1. bỏ file nhạc vào assets/sounds/ (nên là .wav vòng lặp liền mạch),
+///   2. bỏ ảnh bìa vuông vào assets/covers/ (đĩa tự cắt tròn và đặt tâm chung),
+///   3. thêm một dòng vào [kFocusSounds] bên dưới + bản dịch tên trong app_strings.dart.
 class FocusSound {
   final String id;
-  final String nameVi;
-  final String nameEn;
 
-  /// Đường dẫn file trong thư mục assets/ (null = không phát gì).
+  /// Tên tiếng Việt; hiển thị qua translate() nên cần bản dịch trong app_strings.dart.
+  final String name;
+
+  /// File nhạc trong assets/ (null = không phát gì).
   final String? asset;
-  final IconData icon;
 
-  /// Màu nhãn đĩa than khi chọn âm thanh này.
-  final Color color;
+  /// Ảnh bìa vuông trong assets/ (null = đĩa trơn, chỉ dùng cho "không phát nhạc").
+  final String? cover;
+
+  /// Giá bằng coin. 0 = tặng sẵn cho mọi tài khoản.
   final int price;
 
   const FocusSound({
     required this.id,
-    required this.nameVi,
-    required this.nameEn,
+    required this.name,
     required this.asset,
-    required this.icon,
-    required this.color,
+    required this.cover,
     this.price = 0,
   });
-
-  String name(bool vietnamese) => vietnamese ? nameVi : nameEn;
 
   /// Đường dẫn dạng AssetSource của audioplayers (bỏ tiền tố "assets/").
   String? get sourcePath => asset?.replaceFirst('assets/', '');
 }
 
+/// Lựa chọn "tắt nhạc". Không bán, không nằm trong cửa hàng.
+const FocusSound kNoSound = FocusSound(
+  id: 'none',
+  name: 'Không phát nhạc',
+  asset: null,
+  cover: null,
+);
+
+/// Đĩa tặng sẵn, cũng là đĩa mặc định.
 const String kDefaultSoundId = 'lofi';
 
+/// Các đĩa có trong app (cửa hàng bán đúng danh sách này).
 const List<FocusSound> kFocusSounds = [
   FocusSound(
     id: 'lofi',
-    nameVi: 'Lofi đĩa than',
-    nameEn: 'Lofi vinyl',
+    name: 'Lofi đĩa than',
     asset: 'assets/sounds/lofi.wav',
-    icon: Icons.album,
-    color: Color(0xFFB39DDB),
+    cover: 'assets/covers/lofi.jpg',
   ),
   FocusSound(
     id: 'rain',
-    nameVi: 'Mưa rơi',
-    nameEn: 'Rain',
+    name: 'Mưa rơi',
     asset: 'assets/sounds/rain.wav',
-    icon: Icons.water_drop,
-    color: Color(0xFF8EC5E8),
+    cover: 'assets/covers/rain.jpg',
+    price: 20,
   ),
   FocusSound(
     id: 'ocean',
-    nameVi: 'Sóng biển',
-    nameEn: 'Ocean waves',
+    name: 'Sóng biển',
     asset: 'assets/sounds/ocean.wav',
-    icon: Icons.waves,
-    color: Color(0xFF6FC2B8),
-  ),
-  FocusSound(
-    id: 'fire',
-    nameVi: 'Lửa trại',
-    nameEn: 'Campfire',
-    asset: 'assets/sounds/fire.wav',
-    icon: Icons.local_fire_department,
-    color: Color(0xFFF2A65A),
+    cover: 'assets/covers/ocean.jpg',
+    price: 30,
   ),
   FocusSound(
     id: 'brown',
-    nameVi: 'Tiếng ồn nâu',
-    nameEn: 'Brown noise',
+    name: 'Tiếng ồn nâu',
     asset: 'assets/sounds/brown.wav',
-    icon: Icons.graphic_eq,
-    color: Color(0xFFC79D7A),
+    cover: 'assets/covers/brown.jpg',
+    price: 30,
   ),
   FocusSound(
-    id: 'none',
-    nameVi: 'Không phát nhạc',
-    nameEn: 'No sound',
-    asset: null,
-    icon: Icons.volume_off,
-    color: Color(0xFFB8B8B8),
+    id: 'fire',
+    name: 'Lửa trại',
+    asset: 'assets/sounds/fire.wav',
+    cover: 'assets/covers/fire.jpg',
+    price: 40,
   ),
 ];
 
-FocusSound soundById(String? id) {
+/// Tìm đĩa theo id; null nếu không có (kể cả "không phát nhạc" thì trả về [kNoSound]).
+FocusSound? findSound(String? id) {
+  if (id == kNoSound.id) return kNoSound;
   for (final s in kFocusSounds) {
     if (s.id == id) return s;
   }
-  return kFocusSounds.first;
+  return null;
 }
+
+/// Như [findSound] nhưng không có thì dùng đĩa mặc định.
+FocusSound soundById(String? id) => findSound(id) ?? kFocusSounds.first;

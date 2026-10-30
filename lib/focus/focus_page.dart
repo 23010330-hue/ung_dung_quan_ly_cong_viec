@@ -2,23 +2,28 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:todoapp/coins/coin_service.dart';
 import 'package:todoapp/focus/focus_audio.dart';
 import 'package:todoapp/focus/focus_session.dart';
 import 'package:todoapp/focus/record_player_painter.dart';
 import 'package:todoapp/focus/sound_picker_sheet.dart';
 import 'package:todoapp/theme/app_colors.dart';
+import 'package:todoapp/until/coin_chip.dart';
+import 'package:todoapp/until/sound_disc.dart';
 
 /// Chế độ tập trung: chọn mốc thời gian, chọn đĩa nhạc, bấm bắt đầu, máy đĩa than chạy.
 class FocusPage extends StatefulWidget {
   final AppColorTheme colorTheme;
-  final bool isVietnamese;
   final String Function(String) translate;
+
+  /// Bộ phát nhạc dùng chung với trang Kho (do HomePage giữ và đóng).
+  final FocusAudio audio;
 
   const FocusPage({
     super.key,
     required this.colorTheme,
-    required this.isVietnamese,
     required this.translate,
+    required this.audio,
   });
 
   @override
@@ -30,7 +35,6 @@ class _FocusPageState extends State<FocusPage>
   static const _textColor = Color(0xFF2D2A26);
 
   final _session = FocusSession();
-  final _audio = FocusAudio();
   final ValueNotifier<double> _discAngle = ValueNotifier<double>(0);
 
   // cần kim: 0 = nằm nghỉ, 1 = đã hạ xuống đĩa
@@ -48,8 +52,12 @@ class _FocusPageState extends State<FocusPage>
   FocusPhase _lastPhase = FocusPhase.idle;
   DateTime? _leftAt;
 
+  CoinAward? _award; // coin nhận được ở phiên vừa xong (hiện trên thẻ kết quả)
+  bool _checkInOpen = false;
+
   AppColorTheme get _theme => widget.colorTheme;
   String Function(String) get translate => widget.translate;
+  FocusAudio get _audio => widget.audio;
 
   @override
   void initState() {
@@ -65,7 +73,6 @@ class _FocusPageState extends State<FocusPage>
     _ticker.dispose();
     _arm.dispose();
     _discAngle.dispose();
-    _audio.dispose();
     _session.dispose();
     super.dispose();
   }
@@ -106,7 +113,60 @@ class _FocusPageState extends State<FocusPage>
       } else {
         _arm.reverse();
       }
+      if (phase == FocusPhase.finished) {
+        _claimFocusReward();
+      } else {
+        _award = null;
+      }
     }
+    if (_session.awaitingCheckIn && !_checkInOpen) _showCheckIn();
+  }
+
+  /// Phiên chạy hết giờ: cộng coin một lần (hàm này chỉ chạy khi phase vừa chuyển sang finished).
+  Future<void> _claimFocusReward() async {
+    final award = await CoinService.instance.awardFocus(
+      minutes: _session.total.inMinutes,
+    );
+    if (!mounted || _session.phase != FocusPhase.finished) return;
+    setState(() => _award = award);
+  }
+
+  /// Hỏi "Bạn còn đó không?": đồng hồ đã đứng, bấm nút mới chạy tiếp.
+  Future<void> _showCheckIn() async {
+    if (!mounted) return;
+    _checkInOpen = true;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: _theme.light,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            translate('Bạn còn đó không?'),
+            style: const TextStyle(fontWeight: FontWeight.bold, color: _textColor),
+          ),
+          content: Text(
+            translate('Đồng hồ đã tạm dừng để kiểm tra. Bấm nút để tập trung tiếp.'),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _theme.dark,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(translate('Tôi còn đây')),
+            ),
+          ],
+        );
+      },
+    );
+    _checkInOpen = false;
+    if (mounted && _session.awaitingCheckIn) _session.resume();
   }
 
   /// Rời app: tạm dừng ngay. Quay lại trong thời gian cho phép thì tự chạy tiếp.
@@ -217,7 +277,6 @@ class _FocusPageState extends State<FocusPage>
       context: context,
       audio: _audio,
       colorTheme: _theme,
-      isVietnamese: widget.isVietnamese,
       translate: translate,
     );
   }
@@ -225,7 +284,6 @@ class _FocusPageState extends State<FocusPage>
   /// Nút dưới máy đĩa than: hiện đĩa đang chọn, bấm để mở bảng chọn đĩa.
   Widget _buildSoundButton() {
     final sound = _audio.selected;
-    final label = soundLabelColor(sound, _theme);
     return Center(
       child: Material(
         color: Colors.white,
@@ -238,29 +296,11 @@ class _FocusPageState extends State<FocusPage>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFF1E1E1E),
-                  ),
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: label),
-                    child: Icon(
-                      sound.icon,
-                      size: 13,
-                      color: Color.lerp(label, Colors.black, 0.55),
-                    ),
-                  ),
-                ),
+                SizedBox(width: 32, height: 32, child: SoundDisc(sound: sound)),
                 const SizedBox(width: 10),
                 Flexible(
                   child: Text(
-                    sound.name(widget.isVietnamese),
+                    translate(sound.name),
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 15,
@@ -385,6 +425,7 @@ class _FocusPageState extends State<FocusPage>
                   color: _textColor,
                 ),
               ),
+              _buildAwardLine(),
               const SizedBox(height: 12),
               ElevatedButton(
                 onPressed: _session.acknowledgeFinished,
@@ -395,6 +436,55 @@ class _FocusPageState extends State<FocusPage>
           ),
         );
     }
+  }
+
+  /// Dòng coin nhận được ở thẻ kết quả (chưa có kết quả thì không hiện gì).
+  Widget _buildAwardLine() {
+    final award = _award;
+    if (award == null) return const SizedBox.shrink();
+
+    if (award.granted == 0) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Text(
+          translate('Hôm nay bạn đã nhận đủ coin từ tập trung.'),
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.monetization_on, color: kCoinGold, size: 28),
+              const SizedBox(width: 6),
+              Text(
+                '+${award.granted} coin',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: _textColor,
+                ),
+              ),
+            ],
+          ),
+          if (award.capped)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                translate('Chỉ nhận một phần vì chạm giới hạn hôm nay.'),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _buildNotice({required IconData icon, required String text}) {
@@ -436,6 +526,14 @@ class _FocusPageState extends State<FocusPage>
         scrolledUnderElevation: 0,
         backgroundColor: _theme.primary,
         foregroundColor: Colors.black,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Center(
+              child: CoinChip(colorTheme: _theme, translate: translate),
+            ),
+          ),
+        ],
       ),
       body: ListenableBuilder(
         listenable: Listenable.merge([_session, _audio]),
@@ -468,7 +566,8 @@ class _FocusPageState extends State<FocusPage>
                         session: _session,
                         arm: _arm,
                         discAngle: _discAngle,
-                        labelColor: soundLabelColor(_audio.selected, _theme),
+                        // đĩa trên máy chỉ có một kiểu, đổi âm thanh không đổi đĩa
+                        labelColor: _theme.primary,
                       ),
                     ),
                   ),
