@@ -27,6 +27,10 @@ class AuthValidators {
     if (!RegExp(r'^[a-zA-Z0-9_.]+$').hasMatch(value)) {
       return 'Chỉ gồm chữ không dấu, số, dấu _ và .';
     }
+    // tên đăng nhập được dùng làm id trên Firestore nên không được bắt đầu bằng _ hoặc .
+    if (!RegExp(r'^[a-zA-Z0-9]').hasMatch(value)) {
+      return 'Tên đăng nhập phải bắt đầu bằng chữ hoặc số';
+    }
     return null;
   }
 
@@ -529,5 +533,160 @@ Future<bool> runSocialSignIn(
       }
     },
   );
+  // bấm Hủy: đăng xuất luôn để không bị kẹt ở trạng thái đăng nhập dở dang
+  if (chosen == null) await AuthService.instance.signOut();
   return chosen != null;
+}
+
+/// Hộp thoại "Quên mật khẩu": nhập tên đăng nhập hoặc email, app gửi thư đặt lại mật khẩu.
+Future<void> showForgotPasswordDialog(
+  BuildContext context, {
+  required AppColorTheme colorTheme,
+  String initialValue = '',
+}) {
+  final controller = TextEditingController(text: initialValue);
+  final formKey = GlobalKey<FormState>();
+  String? error;
+  String? sentTo;
+  bool busy = false;
+
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> submit() async {
+            if (!formKey.currentState!.validate()) return;
+            setDialogState(() {
+              busy = true;
+              error = null;
+            });
+            try {
+              final masked = await AuthService.instance.sendPasswordReset(
+                controller.text.trim(),
+              );
+              setDialogState(() {
+                busy = false;
+                sentTo = masked;
+              });
+            } on AuthException catch (e) {
+              setDialogState(() {
+                busy = false;
+                error = e.message;
+              });
+            }
+          }
+
+          final sent = sentTo != null;
+          return AlertDialog(
+            backgroundColor: colorTheme.light,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              'Quên mật khẩu',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: kAuthTextColor,
+              ),
+            ),
+            content: sent
+                ? Text(
+                    'Đã gửi thư đặt lại mật khẩu tới $sentTo.\n\n'
+                    'Mở thư, bấm vào đường link rồi đặt mật khẩu mới. '
+                    'Nếu không thấy thư, hãy kiểm tra cả thư rác (spam).',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                  )
+                : Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Nhập tên đăng nhập hoặc email, app sẽ gửi thư '
+                          'đặt lại mật khẩu cho bạn.',
+                          style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                        ),
+                        const SizedBox(height: 14),
+                        AuthTextField(
+                          controller: controller,
+                          label: 'Tên đăng nhập hoặc email',
+                          icon: Icons.person_outline,
+                          colorTheme: colorTheme,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: submit,
+                          validator: (v) => AuthValidators.required(
+                            v,
+                            'Vui lòng nhập tên đăng nhập hoặc email',
+                          ),
+                        ),
+                        if (error != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              error!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFFD32F2F),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+            actions: sent
+                ? [
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorTheme.dark,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Đóng'),
+                    ),
+                  ]
+                : [
+                    TextButton(
+                      onPressed: busy
+                          ? null
+                          : () => Navigator.of(dialogContext).pop(),
+                      child: Text(
+                        'Hủy',
+                        style: TextStyle(color: colorTheme.dark),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: busy ? null : submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorTheme.dark,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: busy
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Gửi thư'),
+                    ),
+                  ],
+          );
+        },
+      );
+    },
+  );
 }

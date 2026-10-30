@@ -20,9 +20,19 @@ class SocialSignInResult {
   bool get needsUsername => username == null;
 }
 
+/// Che bớt email để hiện cho người dùng: "huy.tran@gmail.com" -> "h***n@gmail.com".
+String maskEmail(String email) {
+  final at = email.indexOf('@');
+  if (at <= 0) return email;
+  final name = email.substring(0, at);
+  final domain = email.substring(at);
+  if (name.length <= 2) return '${name[0]}***$domain';
+  return '${name[0]}***${name[name.length - 1]}$domain';
+}
+
 /// Giao diện chung cho phần xác thực.
-/// Hiện dùng [FakeAuthService]; khi nối Firebase chỉ cần viết
-/// FirebaseAuthService và đổi dòng `instance` bên dưới.
+/// Mặc định là [FakeAuthService] (tài khoản giả lưu trên máy). Khi Firebase đã được
+/// cấu hình, `main()` đổi `instance` sang FirebaseAuthService.
 abstract class AuthService {
   static AuthService instance = FakeAuthService();
 
@@ -40,6 +50,10 @@ abstract class AuthService {
 
   /// Gọi sau [signInWithSocial] khi tài khoản mới cần đặt tên đăng nhập.
   Future<void> completeSocialProfile(String username);
+
+  /// Gửi email đặt lại mật khẩu cho [usernameOrEmail] (tên đăng nhập hoặc email).
+  /// Trả về email đã che bớt để báo cho người dùng biết thư được gửi đi đâu.
+  Future<String> sendPasswordReset(String usernameOrEmail);
 
   Future<void> signOut();
 }
@@ -164,6 +178,32 @@ class FakeAuthService extends AuthService {
     await _box.put(_socialKey, links);
     await _box.put(_currentKey, username.trim());
     _pendingProvider = null;
+  }
+
+  @override
+  Future<String> sendPasswordReset(String usernameOrEmail) async {
+    await _fakeDelay();
+    final input = usernameOrEmail.trim().toLowerCase();
+    final users = _readUsers();
+    Map<String, String>? user;
+    if (input.contains('@')) {
+      for (final u in users.values) {
+        if ((u['email'] ?? '').toLowerCase() == input) user = u;
+      }
+    } else {
+      user = users[input];
+    }
+    if (user == null) {
+      throw const AuthException('Không tìm thấy tài khoản này');
+    }
+    final email = user['email'] ?? '';
+    if (email.isEmpty) {
+      throw const AuthException(
+        'Tài khoản này đăng nhập bằng Google hoặc Facebook',
+      );
+    }
+    // bản giả: không gửi thư thật
+    return maskEmail(email);
   }
 
   @override

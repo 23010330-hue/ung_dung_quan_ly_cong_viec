@@ -105,12 +105,12 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 16),
                   AuthTextField(
                     controller: _usernameController,
-                    label: 'Tên đăng nhập',
+                    label: 'Tên đăng nhập hoặc email',
                     icon: Icons.person_outline,
                     colorTheme: _colorTheme,
                     validator: (v) => AuthValidators.required(
                       v,
-                      'Vui lòng nhập tên đăng nhập',
+                      'Vui lòng nhập tên đăng nhập hoặc email',
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -125,6 +125,25 @@ class _LoginPageState extends State<LoginPage> {
                     validator: (v) => AuthValidators.required(
                       v,
                       'Vui lòng nhập mật khẩu',
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _loading
+                          ? null
+                          : () => showForgotPasswordDialog(
+                              context,
+                              colorTheme: _colorTheme,
+                              initialValue: _usernameController.text.trim(),
+                            ),
+                      child: Text(
+                        'Quên mật khẩu?',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _colorTheme.dark,
+                        ),
+                      ),
                     ),
                   ),
                   if (_error != null)
