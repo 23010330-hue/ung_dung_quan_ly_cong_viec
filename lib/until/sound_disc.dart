@@ -26,10 +26,10 @@ class SoundDisc extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cover = sound.cover;
+    final coverAsset = sound.cover;
 
     // "Không phát nhạc": đĩa trơn màu xám, không có tâm.
-    if (cover == null) {
+    if (coverAsset == null) {
       return AspectRatio(
         aspectRatio: 1,
         child: ClipOval(
@@ -43,11 +43,13 @@ class SoundDisc extends StatelessWidget {
       children: [
         ClipOval(
           child: Image.asset(
-            cover,
+            coverAsset,
             fit: BoxFit.cover,
             // thiếu ảnh thì hiện đĩa xám thay vì báo lỗi đỏ
-            errorBuilder: (_, __, ___) =>
-                _placeholder(icon: Icons.album, color: const Color(0xFF6E6A63)),
+            errorBuilder: (_, _, _) => _placeholder(
+              icon: Icons.album,
+              color: const Color(0xFF6E6A63),
+            ),
           ),
         ),
         const CustomPaint(painter: _DiscOverlayPainter()),

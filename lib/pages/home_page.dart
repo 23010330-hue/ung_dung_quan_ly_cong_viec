@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart' show Hive;
-import 'package:todoapp/coins/coin_service.dart';
 import 'package:todoapp/data/database.dart';
 import 'package:todoapp/focus/focus_audio.dart';
 import 'package:todoapp/focus/focus_page.dart';
@@ -10,9 +9,6 @@ import 'package:todoapp/pages/schedule_page.dart';
 import 'package:todoapp/pages/stats_page.dart';
 import 'package:todoapp/services/auth_service.dart';
 import 'package:todoapp/services/cloud_sync.dart';
-import 'package:todoapp/shop/inventory_page.dart';
-import 'package:todoapp/shop/shop_page.dart';
-import 'package:todoapp/shop/sound_inventory.dart';
 import 'package:todoapp/theme/app_colors.dart';
 import 'package:todoapp/until/app_strings.dart';
 import 'package:todoapp/until/main_bottom_bar.dart';
@@ -36,8 +32,7 @@ class _HomePageState extends State<HomePage> {
 
   bool _ready = false;
 
-  // Bộ phát nhạc dùng chung cho trang Tập trung và trang Kho.
-  // Chỉ tạo sau khi dữ liệu đã nạp xong, vì đĩa đang chọn phụ thuộc vào kho đĩa.
+  // Chỉ tạo sau khi đã đồng bộ xong, vì đĩa đang chọn được lưu theo tài khoản.
   FocusAudio? _audioOrNull;
   FocusAudio get _audio => _audioOrNull ??= FocusAudio();
 
@@ -57,8 +52,6 @@ class _HomePageState extends State<HomePage> {
     _colorTheme = AppColorTheme.fromId(_myBox.get('APP_COLOR_THEME'));
     _isVietnamese = _myBox.get('IS_VIETNAMESE', defaultValue: true) as bool;
     _myBox.delete('BACKGROUND_IMAGE_BYTES');
-    await CoinService.instance.load();
-    await SoundInventory.instance.load();
     if (!db.hasSavedData) {
       db.createInitialData();
     } else {
@@ -129,15 +122,6 @@ class _HomePageState extends State<HomePage> {
           IndexedStack(
             index: _current.index,
             children: [
-              ShopPage(
-                colorTheme: _colorTheme,
-                translate: translate,
-              ),
-              InventoryPage(
-                colorTheme: _colorTheme,
-                translate: translate,
-                audio: _audio,
-              ),
               SchedulePage(
                 db: db,
                 translate: translate,

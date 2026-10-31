@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:todoapp/coins/coin_rules.dart';
-import 'package:todoapp/coins/coin_service.dart';
 import 'package:todoapp/data/database.dart';
 import 'package:todoapp/pages/history_page.dart';
 import 'package:todoapp/theme/app_colors.dart';
 import 'package:todoapp/until/app_dropdown.dart';
-import 'package:todoapp/until/coin_chip.dart';
 import 'package:todoapp/until/dialog_box.dart';
 import 'package:todoapp/until/task_search_field.dart';
 import 'package:todoapp/until/todo_tile.dart';
@@ -143,49 +140,6 @@ class _SchedulePageState extends State<SchedulePage> {
       db.setTaskCompleted(task, newCompleted);
     });
     db.updateData();
-    if (newCompleted) _rewardTaskIfOnTime(task);
-  }
-
-  /// Hoàn thành đúng hạn thì được coin, mỗi việc chỉ xét thưởng một lần (cờ task[5]),
-  /// nên bỏ tích rồi tích lại không nhận thêm. Hết lượt thưởng trong ngày thì việc đó coi như đã xét.
-  Future<void> _rewardTaskIfOnTime(List task) async {
-    if (task.length > 5 && task[5] == true) return;
-
-    final scheduled = db.parseDate(task[3] as String);
-    final completed = db.parseDate(db.getCompletedDate(task) ?? '');
-    if (scheduled == null || completed == null) return;
-    if (!CoinRules.isOnTime(scheduled: scheduled, completed: completed)) return;
-
-    task[5] = true;
-    db.updateData();
-
-    final award = await CoinService.instance.awardTask(taskName: task[0] as String);
-    if (!mounted || award.granted == 0) return;
-    _showCoinSnack(award.granted);
-  }
-
-  void _showCoinSnack(int coins) {
-    final messenger = _messengerKey.currentState;
-    if (messenger == null) return;
-    messenger.clearSnackBars();
-    messenger.showSnackBar(
-      SnackBar(
-        duration: const Duration(seconds: 2),
-        backgroundColor: _colorTheme.dark,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: Row(
-          children: [
-            const Icon(Icons.monetization_on, color: kCoinGold),
-            const SizedBox(width: 8),
-            Text(
-              '+$coins coin · ${translate('Việc đúng hạn')}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _openHistoryPage() {
@@ -220,7 +174,6 @@ class _SchedulePageState extends State<SchedulePage> {
           _selectedCategory,
           _selectedTaskDate,
           null,
-          false, // đã xét thưởng coin chưa
         ]);
       }
       _controller.clear();
@@ -435,37 +388,30 @@ class _SchedulePageState extends State<SchedulePage> {
         ),
         body: Column(
           children: [
-            // Dải thông báo dạng thẻ bo góc, kèm số coin ở bên phải
+            // Dải thông báo dạng thẻ bo góc
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: _colorTheme.dark,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        _searchQuery.isNotEmpty
-                            ? "${translate('Kết quả tìm kiếm cho:')} '$_searchQuery'"
-                            : _currentFilter == 'Tất cả'
-                            ? "${translate('Đang xem tất cả việc chưa hoàn thành:')} $_viewDate"
-                            : _selectedDateFilter != null
-                            ? "${translate('Đang xem công việc của ngày:')} $_viewDate"
-                            : "${translate('Đang xem công việc của hôm nay:')} $_viewDate",
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _colorTheme.dark,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  _searchQuery.isNotEmpty
+                      ? "${translate('Kết quả tìm kiếm cho:')} '$_searchQuery'"
+                      : _currentFilter == 'Tất cả'
+                      ? "${translate('Đang xem tất cả việc chưa hoàn thành:')} $_viewDate"
+                      : _selectedDateFilter != null
+                      ? "${translate('Đang xem công việc của ngày:')} $_viewDate"
+                      : "${translate('Đang xem công việc của hôm nay:')} $_viewDate",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
-                  const SizedBox(width: 8),
-                  CoinChip(colorTheme: _colorTheme, translate: translate),
-                ],
+                ),
               ),
             ),
             Expanded(

@@ -12,17 +12,12 @@ const Duration kFocusLeaveGrace = Duration(minutes: 1);
 /// Các mốc thời gian được phép chọn (phút).
 const List<int> kFocusMinuteOptions = [30, 60, 90, 120];
 
-/// Cứ chạy được chừng này thì đồng hồ tạm dừng và hỏi "Bạn còn đó không?".
-/// Không bấm xác nhận thì đồng hồ đứng yên, không tính thêm giờ và không có coin.
-const Duration kFocusCheckInEvery = Duration(hours: 1);
-
 enum FocusPhase { idle, running, paused, finished }
 
 /// Một phiên tập trung: chọn mốc, bắt đầu, tạm dừng, tiếp tục, kết thúc.
 ///
 /// Thời gian được tính bằng Stopwatch (không phụ thuộc đồng hồ máy và
 /// không bị trình duyệt làm chậm khi tab ở nền), Timer chỉ để báo giao diện cập nhật.
-/// Coin chỉ được cộng khi phiên chạy hết giờ ([FocusPhase.finished]); trang tập trung lo phần đó.
 class FocusSession extends ChangeNotifier {
   FocusPhase phase = FocusPhase.idle;
   Duration total = const Duration(minutes: 60);
@@ -30,10 +25,6 @@ class FocusSession extends ChangeNotifier {
   /// true nếu phiên đang tạm dừng vì người dùng rời khỏi app.
   bool pausedByLeaving = false;
 
-  /// true nếu phiên đang tạm dừng để hỏi "Bạn còn đó không?". Bấm [resume] là xác nhận.
-  bool awaitingCheckIn = false;
-
-  Duration _nextCheckIn = kFocusCheckInEvery;
   Duration _accumulated = Duration.zero;
   final Stopwatch _segment = Stopwatch();
   Timer? _timer;
@@ -63,8 +54,6 @@ class FocusSession extends ChangeNotifier {
       ..reset()
       ..start();
     pausedByLeaving = false;
-    awaitingCheckIn = false;
-    _nextCheckIn = kFocusCheckInEvery;
     phase = FocusPhase.running;
     _startTimer();
     notifyListeners();
@@ -85,11 +74,6 @@ class FocusSession extends ChangeNotifier {
   void resume() {
     if (phase != FocusPhase.paused) return;
     pausedByLeaving = false;
-    if (awaitingCheckIn) {
-      // bấm tiếp tục = xác nhận "tôi còn đây"; mốc hỏi kế tiếp là 1 giờ nữa
-      awaitingCheckIn = false;
-      _nextCheckIn += kFocusCheckInEvery;
-    }
     _segment
       ..reset()
       ..start();
@@ -106,8 +90,6 @@ class FocusSession extends ChangeNotifier {
       ..reset();
     _accumulated = Duration.zero;
     pausedByLeaving = false;
-    awaitingCheckIn = false;
-    _nextCheckIn = kFocusCheckInEvery;
     phase = FocusPhase.idle;
     notifyListeners();
   }
@@ -123,9 +105,6 @@ class FocusSession extends ChangeNotifier {
     _timer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (elapsed >= total) {
         _finish();
-      } else if (elapsed >= _nextCheckIn) {
-        awaitingCheckIn = true;
-        pause(); // đứng đồng hồ cho đến khi người dùng xác nhận còn đó
       } else {
         notifyListeners();
       }

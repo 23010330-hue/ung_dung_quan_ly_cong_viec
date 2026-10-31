@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:todoapp/theme/app_colors.dart';
 
 /// Các màn hình chính của app. Thứ tự khớp với IndexedStack trong HomePage.
-enum AppTab { shop, inventory, schedule, focus, stats, account }
+enum AppTab { schedule, focus, stats, account }
 
-/// Thanh điều hướng dưới: 2 mục bên trái, nút giữa nổi, 2 mục bên phải.
+/// Thanh điều hướng dưới: Thống kê bên trái, nút giữa nổi, Tài khoản bên phải.
 class MainBottomBar extends StatelessWidget {
   final AppTab current;
   final bool pickerOpen;
@@ -31,7 +31,6 @@ class MainBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final isFocus = current == AppTab.focus;
-    final centerIcon = isFocus ? Icons.album : Icons.event_note;
     final centerLabel = isFocus ? 'Tập trung' : 'Đặt lịch';
 
     return Column(
@@ -63,22 +62,12 @@ class MainBottomBar extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _BarItem(
-                          icon: Icons.storefront_outlined,
-                          activeIcon: Icons.storefront,
-                          label: translate('Cửa hàng'),
-                          selected: current == AppTab.shop,
+                          icon: Icons.bar_chart_outlined,
+                          activeIcon: Icons.bar_chart,
+                          label: translate('Thống kê'),
+                          selected: current == AppTab.stats,
                           colorTheme: colorTheme,
-                          onTap: () => onTabSelected(AppTab.shop),
-                        ),
-                      ),
-                      Expanded(
-                        child: _BarItem(
-                          icon: Icons.inventory_2_outlined,
-                          activeIcon: Icons.inventory_2,
-                          label: translate('Kho'),
-                          selected: current == AppTab.inventory,
-                          colorTheme: colorTheme,
-                          onTap: () => onTabSelected(AppTab.inventory),
+                          onTap: () => onTabSelected(AppTab.stats),
                         ),
                       ),
                       // chỗ trống dành cho nút giữa + nhãn chế độ hiện tại
@@ -96,16 +85,6 @@ class MainBottomBar extends StatelessWidget {
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                      Expanded(
-                        child: _BarItem(
-                          icon: Icons.bar_chart_outlined,
-                          activeIcon: Icons.bar_chart,
-                          label: translate('Thống kê'),
-                          selected: current == AppTab.stats,
-                          colorTheme: colorTheme,
-                          onTap: () => onTabSelected(AppTab.stats),
                         ),
                       ),
                       Expanded(
@@ -148,7 +127,7 @@ class MainBottomBar extends StatelessWidget {
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 180),
                             child: Icon(
-                              pickerOpen ? Icons.close : centerIcon,
+                              pickerOpen ? Icons.close : Icons.home,
                               key: ValueKey<bool>(pickerOpen),
                               color: Colors.white,
                               size: 30,

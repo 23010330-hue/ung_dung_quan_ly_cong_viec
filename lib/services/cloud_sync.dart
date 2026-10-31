@@ -39,18 +39,7 @@ class CloudSync {
 
   final List<_Item> _items = [
     _Item('tasks', (u) => ['TODOLIST_$u'], _readTasks, _writeTasks),
-    _Item(
-      'coins',
-      (u) => ['COIN_BALANCE_$u', 'COIN_LEDGER_$u'],
-      _readCoins,
-      _writeCoins,
-    ),
-    _Item(
-      'inventory',
-      (u) => ['OWNED_SOUNDS_$u', 'FOCUS_SOUND_$u'],
-      _readInventory,
-      _writeInventory,
-    ),
+    _Item('focus', (u) => ['FOCUS_SOUND_$u'], _readFocus, _writeFocus),
     _Item('avatar', (u) => ['AVATAR_$u'], _readAvatar, _writeAvatar),
     // màu giao diện và ngôn ngữ là khóa chung của máy, nhưng đi theo tài khoản
     _Item(
@@ -190,7 +179,6 @@ _Json _taskToMap(List t) => {
       'c': t.length > 2 ? t[2] : null,
       's': t.length > 3 ? t[3] : null,
       'f': t.length > 4 ? t[4] : null,
-      'r': t.length > 5 ? t[5] == true : (t.length > 1 && t[1] == true),
     };
 
 List<dynamic> _taskFromMap(Map m) => <dynamic>[
@@ -199,7 +187,6 @@ List<dynamic> _taskFromMap(Map m) => <dynamic>[
       m['c'] is String ? m['c'] : 'Ngày',
       m['s'] is String ? m['s'] : _today(),
       m['f'] is String ? m['f'] : null,
-      m['r'] == true,
     ];
 
 String _today() {
@@ -229,51 +216,14 @@ Future<void> _writeTasks(Box box, String u, _Json data) {
   return box.put('TODOLIST_$u', list);
 }
 
-_Json? _readCoins(Box box, String u) {
-  final balance = box.get('COIN_BALANCE_$u');
-  final ledger = box.get('COIN_LEDGER_$u');
-  if (balance == null && ledger == null) return null;
-  return {
-    'balance': balance is int ? balance : 0,
-    'ledger': [
-      if (ledger is List)
-        for (final e in ledger)
-          if (e is Map) Map<String, dynamic>.from(e),
-    ],
-  };
-}
-
-Future<void> _writeCoins(Box box, String u, _Json data) async {
-  final balance = data['balance'];
-  final ledger = data['ledger'];
-  await box.put('COIN_BALANCE_$u', balance is num ? balance.toInt() : 0);
-  await box.put('COIN_LEDGER_$u', [
-    if (ledger is List)
-      for (final e in ledger)
-        if (e is Map) Map<String, dynamic>.from(e),
-  ]);
-}
-
-_Json? _readInventory(Box box, String u) {
-  final owned = box.get('OWNED_SOUNDS_$u');
+_Json? _readFocus(Box box, String u) {
   final selected = box.get('FOCUS_SOUND_$u');
-  if (owned == null && selected == null) return null;
-  return {
-    'owned': [
-      if (owned is List)
-        for (final id in owned) '$id',
-    ],
-    'selected': selected is String ? selected : null,
-  };
+  if (selected is! String) return null;
+  return {'selected': selected};
 }
 
-Future<void> _writeInventory(Box box, String u, _Json data) async {
-  final owned = data['owned'];
+Future<void> _writeFocus(Box box, String u, _Json data) async {
   final selected = data['selected'];
-  await box.put('OWNED_SOUNDS_$u', [
-    if (owned is List)
-      for (final id in owned) '$id',
-  ]);
   if (selected is String) {
     await box.put('FOCUS_SOUND_$u', selected);
   } else {

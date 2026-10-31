@@ -13,7 +13,7 @@ import 'package:todoapp/services/auth_service.dart';
 ///   Đăng nhập bằng tên đăng nhập = tra email rồi đăng nhập bằng email.
 /// - Hồ sơ mỗi người nằm ở `users/{uid}` (có trường `username`).
 /// - Tên đăng nhập hiện tại được nhớ thêm trong Hive để [currentUsername] trả về ngay,
-///   không phải chờ mạng. Mọi dữ liệu theo tên đăng nhập (việc, coin, kho đĩa...) vẫn dùng như cũ.
+///   không phải chờ mạng. Mọi dữ liệu theo tên đăng nhập (việc, đĩa đã chọn, ảnh đại diện...) vẫn dùng như cũ.
 class FirebaseAuthService extends AuthService {
   static const _currentKey = 'CURRENT_USER';
   static const _uidKey = 'CURRENT_UID';

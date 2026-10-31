@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:todoapp/focus/focus_audio.dart';
 import 'package:todoapp/focus/focus_sound.dart';
-import 'package:todoapp/shop/sound_inventory.dart';
 import 'package:todoapp/theme/app_colors.dart';
 import 'package:todoapp/until/marquee_text.dart';
 import 'package:todoapp/until/sound_disc.dart';
 
-/// Bảng chọn đĩa nhạc cho phiên tập trung, trượt từ dưới lên: chỉ gồm "không phát nhạc"
-/// và các đĩa đã có trong kho. Bấm vào đĩa là chọn ngay (lúc chưa tập trung sẽ nghe thử vài giây).
+/// Bảng chọn đĩa nhạc cho phiên tập trung, trượt từ dưới lên.
+/// Bấm vào đĩa là chọn ngay (lúc chưa tập trung sẽ nghe thử vài giây).
 Future<void> showSoundPicker({
   required BuildContext context,
   required FocusAudio audio,
@@ -71,7 +70,7 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
   }
 
   Widget _tile(FocusSound sound, bool selected) {
-    final spinning = selected && sound.cover != null;
+    final spinning = selected && sound.hasCover;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () => widget.audio.select(sound.id),
@@ -141,10 +140,10 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: ListenableBuilder(
-          listenable: Listenable.merge([widget.audio, SoundInventory.instance]),
+          listenable: widget.audio,
           builder: (context, _) {
             final selectedId = widget.audio.selectedId;
-            final sounds = [...SoundInventory.instance.ownedSounds, kNoSound];
+            final sounds = [...kFocusSounds, kNoSound];
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,11 +173,6 @@ class _SoundPickerSheetState extends State<_SoundPickerSheet>
                       for (final sound in sounds) _tile(sound, sound.id == selectedId),
                     ],
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  translate('Đĩa mới sẽ có ở Cửa hàng âm thanh.'),
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
                 const SizedBox(height: 14),
                 SizedBox(
