@@ -9,6 +9,7 @@ import 'package:todoapp/pages/login_page.dart';
 import 'package:todoapp/pages/schedule_page.dart';
 import 'package:todoapp/pages/stats_page.dart';
 import 'package:todoapp/services/auth_service.dart';
+import 'package:todoapp/services/cloud_sync.dart';
 import 'package:todoapp/shop/inventory_page.dart';
 import 'package:todoapp/shop/shop_page.dart';
 import 'package:todoapp/shop/sound_inventory.dart';
@@ -33,9 +34,12 @@ class _HomePageState extends State<HomePage> {
   AppTab _current = AppTab.schedule;
   bool _pickerOpen = false;
 
+  bool _ready = false;
+
   // Bộ phát nhạc dùng chung cho trang Tập trung và trang Kho.
-  // Tạo muộn (lúc dựng giao diện) để chạy sau khi kho đĩa đã nạp xong trong initState.
-  late final FocusAudio _audio = FocusAudio();
+  // Chỉ tạo sau khi dữ liệu đã nạp xong, vì đĩa đang chọn phụ thuộc vào kho đĩa.
+  FocusAudio? _audioOrNull;
+  FocusAudio get _audio => _audioOrNull ??= FocusAudio();
 
   String translate(String text) => translateText(text, _isVietnamese);
 
@@ -43,21 +47,30 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _colorTheme = AppColorTheme.fromId(_myBox.get('APP_COLOR_THEME'));
+    _boot();
+  }
+
+  Future<void> _boot() async {
+    await CloudSync.instance.start();
+    if (!mounted) return;
+
+    _colorTheme = AppColorTheme.fromId(_myBox.get('APP_COLOR_THEME'));
     _isVietnamese = _myBox.get('IS_VIETNAMESE', defaultValue: true) as bool;
-    // tính năng ảnh nền đã bỏ: dọn ảnh cũ cho nhẹ bộ nhớ
     _myBox.delete('BACKGROUND_IMAGE_BYTES');
-    CoinService.instance.load(); // nạp ví coin của tài khoản vừa đăng nhập
-    SoundInventory.instance.load(); // nạp kho đĩa của tài khoản vừa đăng nhập
+    await CoinService.instance.load();
+    await SoundInventory.instance.load();
     if (!db.hasSavedData) {
       db.createInitialData();
     } else {
       db.loadData();
     }
+    if (!mounted) return;
+    setState(() => _ready = true);
   }
 
   @override
   void dispose() {
-    _audio.dispose();
+    _audioOrNull?.dispose();
     super.dispose();
   }
 
@@ -89,6 +102,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _logout() async {
+    await CloudSync.instance.stop();
     await AuthService.instance.signOut();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -99,6 +113,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_ready) {
+      return Scaffold(
+        backgroundColor: _colorTheme.light,
+        body: Center(child: CircularProgressIndicator(color: _colorTheme.dark)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: _colorTheme.light,
       body: Stack(
