@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "615693114392",
+    "project_id": "qldanhsach",
+    "storage_bucket": "qldanhsach.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:615693114392:android:f25f6f2535241dc4e9b76d",
+        "android_client_info": {
+          "package_name": "com.example.todoapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDnVGHr9kXJhB86GJNoMUj0AQSSF9-y_Hw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
